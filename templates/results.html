@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="bg-white shadow rounded p-6">
+  <h2 class="text-xl font-semibold mb-4">Results & Analysis</h2>
+  <form id="res-form" class="flex gap-2 items-center mb-4">
+    <input type="number" min="1" step="1" name="experiment_id" placeholder="Experiment ID" class="border rounded px-3 py-2" required>
+    <button class="px-4 py-2 bg-blue-600 text-white rounded">Load</button>
+  </form>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <pre id="summary" class="text-sm"></pre>
+    <pre id="by-model" class="text-sm"></pre>
+    <pre id="by-strategy" class="text-sm"></pre>
+    <pre id="by-task" class="text-sm"></pre>
+  </div>
+</div>
+<script>
+document.getElementById('res-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const id = parseInt(fd.get('experiment_id'), 10);
+  const [s, m, st, t] = await Promise.all([
+    fetch(`/api/analysis/${id}/summary`).then(r=>r.json()),
+    fetch(`/api/analysis/${id}/by-model`).then(r=>r.json()),
+    fetch(`/api/analysis/${id}/by-strategy`).then(r=>r.json()),
+    fetch(`/api/analysis/${id}/by-task`).then(r=>r.json()),
+  ]);
+  document.getElementById('summary').textContent = 'Summary\n' + JSON.stringify(s, null, 2);
+  document.getElementById('by-model').textContent = 'By Model\n' + JSON.stringify(m, null, 2);
+  document.getElementById('by-strategy').textContent = 'By Strategy\n' + JSON.stringify(st, null, 2);
+  document.getElementById('by-task').textContent = 'By Task\n' + JSON.stringify(t, null, 2);
+});
+</script>
+{% endblock %}
+

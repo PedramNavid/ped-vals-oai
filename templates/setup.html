@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="bg-white shadow rounded p-6">
+  <h2 class="text-xl font-semibold mb-4">Experiment Setup</h2>
+  <p class="mb-2">Paste a few writing samples and create an experiment.</p>
+  <form id="setup-form" class="space-y-3">
+    <input type="text" name="name" placeholder="Experiment name" class="w-full border rounded px-3 py-2" required>
+    <textarea name="description" rows="2" placeholder="Description (optional)" class="w-full border rounded px-3 py-2"></textarea>
+    <textarea name="samples" rows="6" placeholder="Paste 2+ samples, separated by \n\n" class="w-full border rounded px-3 py-2"></textarea>
+    <button class="px-4 py-2 bg-blue-600 text-white rounded">Create</button>
+  </form>
+  <pre id="setup-result" class="mt-4 text-sm"></pre>
+</div>
+<script>
+document.getElementById('setup-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const samples = (fd.get('samples')||'').split(/\n\n+/).filter(Boolean);
+  const body = {
+    name: fd.get('name'),
+    description: fd.get('description') || null,
+    baseline_samples: samples,
+    selected_models: [],
+    selected_strategies: [],
+    selected_tasks: []
+  };
+  const res = await fetch('/api/experiments', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const data = await res.json();
+  document.getElementById('setup-result').textContent = JSON.stringify(data, null, 2);
+});
+</script>
+{% endblock %}
+

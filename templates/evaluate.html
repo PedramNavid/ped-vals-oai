@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="bg-white shadow rounded p-6">
+  <h2 class="text-xl font-semibold mb-4">Blind Evaluation</h2>
+  <form id="eval-form" class="space-y-3">
+    <input type="number" min="1" step="1" name="experiment_id" placeholder="Experiment ID" class="border rounded px-3 py-2" required>
+    <button type="button" id="load-btn" class="px-4 py-2 bg-gray-700 text-white rounded">Load Next</button>
+
+    <div id="content" class="border rounded p-3 whitespace-pre-wrap hidden"></div>
+    <input type="hidden" name="blind_id" />
+
+    <div id="scores" class="grid grid-cols-2 gap-3 hidden">
+      <label>Voice/Style Match
+        <select name="voice_match" class="w-full border rounded px-3 py-2">
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+        </select>
+      </label>
+      <label>Coherence & Flow
+        <select name="coherence" class="w-full border rounded px-3 py-2">
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+        </select>
+      </label>
+      <label>Engaging/Compelling
+        <select name="engaging" class="w-full border rounded px-3 py-2">
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+        </select>
+      </label>
+      <label>Meets Brief
+        <select name="meets_brief" class="w-full border rounded px-3 py-2">
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+        </select>
+      </label>
+    </div>
+
+    <label class="hidden" id="overall-label">Overall Quality
+      <select name="overall_quality" class="w-full border rounded px-3 py-2">
+        <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+      </select>
+    </label>
+    <div id="meta" class="grid grid-cols-2 gap-3 hidden">
+      <label>Estimated Edit Time (min)
+        <input type="number" min="0" name="edit_time_minutes" class="w-full border rounded px-3 py-2" />
+      </label>
+      <label>Would Publish?
+        <select name="would_publish" class="w-full border rounded px-3 py-2">
+          <option value="yes">Yes</option>
+          <option value="with_edits">With edits</option>
+          <option value="no">No</option>
+        </select>
+      </label>
+    </div>
+    <textarea name="notes" rows="3" placeholder="Notes" class="w-full border rounded px-3 py-2 hidden"></textarea>
+    <button class="px-4 py-2 bg-blue-600 text-white rounded hidden" id="submit-btn">Submit & Next</button>
+  </form>
+  <div class="mt-4 text-sm">Progress: <span id="prog">0</span> / <span id="total">0</span></div>
+</div>
+<script>
+const form = document.getElementById('eval-form');
+const loadBtn = document.getElementById('load-btn');
+const content = document.getElementById('content');
+const scores = document.getElementById('scores');
+const meta = document.getElementById('meta');
+const notes = form.querySelector('textarea[name="notes"]');
+const submitBtn = document.getElementById('submit-btn');
+async function loadNext(){
+  const fd = new FormData(form);
+  const experiment_id = parseInt(fd.get('experiment_id'), 10);
+  const res = await fetch(`/api/evaluations/next/${experiment_id}`);
+  const data = await res.json();
+  if(data.done){
+    content.textContent = 'All done!';
+    content.classList.remove('hidden');
+    scores.classList.add('hidden');
+    meta.classList.add('hidden');
+    notes.classList.add('hidden');
+    submitBtn.classList.add('hidden');
+    return;
+  }
+  form.elements['blind_id'].value = data.blind_id;
+  content.textContent = data.content;
+  content.classList.remove('hidden');
+  scores.classList.remove('hidden');
+  meta.classList.remove('hidden');
+  notes.classList.remove('hidden');
+  submitBtn.classList.remove('hidden');
+}
+loadBtn.addEventListener('click', loadNext);
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(form);
+  const payload = Object.fromEntries(fd.entries());
+  const experiment_id = parseInt(fd.get('experiment_id'), 10);
+  payload.voice_match = parseInt(payload.voice_match, 10);
+  payload.coherence = parseInt(payload.coherence, 10);
+  payload.engaging = parseInt(payload.engaging, 10);
+  payload.meets_brief = parseInt(payload.meets_brief, 10);
+  payload.overall_quality = parseInt(payload.overall_quality, 10);
+  payload.edit_time_minutes = parseInt(payload.edit_time_minutes || '0', 10);
+  const res = await fetch(`/api/evaluations?experiment_id=${experiment_id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+  await res.json();
+  loadNext();
+  const progRes = await fetch(`/api/evaluations/progress/${experiment_id}`);
+  const prog = await progRes.json();
+  document.getElementById('prog').textContent = prog.done;
+  document.getElementById('total').textContent = prog.total;
+});
+</script>
+{% endblock %}
+

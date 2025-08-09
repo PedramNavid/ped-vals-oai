@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="bg-white shadow rounded p-6">
+  <h2 class="text-xl font-semibold mb-4">Run Generations</h2>
+  <form id="gen-form" class="flex gap-2 items-center mb-4">
+    <input type="number" min="1" step="1" name="experiment_id" placeholder="Experiment ID" class="border rounded px-3 py-2" required>
+    <button class="px-4 py-2 bg-blue-600 text-white rounded">Start All</button>
+  </form>
+  <div class="text-sm">Progress: <span id="gen-num">0</span></div>
+  <pre id="gen-result" class="mt-4 text-sm"></pre>
+</div>
+<script>
+document.getElementById('gen-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const experiment_id = parseInt(fd.get('experiment_id'), 10);
+  const res = await fetch('/api/generations/start', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({experiment_id, run_all: true})});
+  const data = await res.json();
+  document.getElementById('gen-num').textContent = data.generated ?? 0;
+  document.getElementById('gen-result').textContent = JSON.stringify(data, null, 2);
+});
+</script>
+{% endblock %}
+
